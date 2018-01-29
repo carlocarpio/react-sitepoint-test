@@ -1,0 +1,205 @@
+<!Doctype html>
+<html>
+  <head>
+    <title>Counter Test</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="app.css" type="text/css">
+  </head>
+  <body>
+
+    <div id="root"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/15.4.2/react.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/15.4.2/react-dom.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.21.1/babel.min.js"></script>
+    <script src="./app.js"></script>
+
+    <script type="text/babel">
+      class App extends React.Component {
+        constructor(props) {
+          super(props);
+          this.state = {
+            data: [],
+            title: '',
+            count: 0
+          };
+
+          this.onDeleteTitle = this.onDeleteTitle.bind(this);
+          this.onUpdateCount = this.onUpdateCount.bind(this);
+          this.onFetchAllTitle = this.onFetchAllTitle.bind(this);
+          this.onPostTitle = this.onPostTitle.bind(this);
+          this.onHandleChange = this.onHandleChange.bind(this);
+          this.getTotal = this.getTotal.bind(this);
+        }
+
+        componentDidMount() {
+          this.onFetchAllTitle();
+        }
+
+        onDeleteTitle = (id) => {
+          const data = {
+            "id": id
+          }
+          fetch('/api/v1/counter', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          })
+          .then(res => console.log(res))
+          .catch((err) => {
+            console.log(err)
+            if (err) {
+              return Promise.resolve([]);
+            }
+            return err;
+          });
+          this.onFetchAllTitle();
+        }
+
+        onFetchAllTitle = () => {
+          fetch('/api/v1/counters', {
+            method: 'get'
+          })
+          .then((res) => res.json())
+          .then((data) => {
+            this.setState({ data });
+          });
+        }
+
+        onUpdateCount = (type, id) => {
+          const url = type === 'increment' ? '/api/v1/counter/inc' : '/api/v1/counter/dec';
+          const data = { "id": id };
+
+          fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          })
+          .then(res => console.log(res))
+          .catch((err) => {
+            if (err) {
+              return Promise.resolve([]);
+            }
+            return err;
+          });
+          this.onFetchAllTitle();
+          // this.getTotal();
+        }
+
+        onPostTitle = () => {
+          const data = {
+            "title": this.state.inputValue
+          }
+          fetch('/api/v1/counter', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          })
+          .then(res => console.log(res))
+          .catch((err) => {
+            console.log(err)
+            if (err) {
+              return Promise.resolve([]);
+            }
+            return err;
+          });
+          this.setState({ inputValue: '' });
+          this.onFetchAllTitle();
+        }
+
+        onHandleChange = (event) => {
+          this.setState({ inputValue: event.target.value });
+        }
+
+        getTotal = () => {
+          let sum = 0;
+          for (let item of Object.values(this.state.data)) {
+            sum += item.count;
+          }
+          return sum;
+        }
+
+        renderForm = () => {
+          const { inputValue } = this.state;
+          return (
+            <div className="row">
+              <div className="col-4">
+                <div className="form-inline d-flex justify-content-between">
+                  <div className="form-group mb-2">
+                    <input type="text" className="form-control" placeholder="Title" name="title" value={inputValue} onChange={this.onHandleChange} />
+                  </div>
+                  <button type="submit" onClick={() => this.onPostTitle()} className="btn btn-primary mb-2">Add</button>
+                </div>
+              </div>  
+            </div>
+          );
+        }
+
+        renderList = () => {
+          const { data } = this.state;
+          return (
+            <div className="row">
+              <div className="col-4">
+              {data.length === 0 && 'Please add Title'}
+              {data.map((item, index) => (
+                <div className="row" key={index}>
+                  <div className="col-12 d-flex justify-content-between mb-2">
+                    <div className="d-flex flex-row align-items-center">
+                      <button className="btn btn-danger mr-2" onClick={() => this.onDeleteTitle(item.id)}>X</button>
+                      <h5>{item.title}</h5>
+                    </div>
+                    <div className="d-flex flex-row align-items-center">
+                      { item.count !== 0 &&
+                        <button className="btn btn-primary" onClick={() => this.onUpdateCount('decrement', item.id)}>-</button> }
+                      <span className="mr-2 ml-2">{item.count}</span>
+                      <button className="btn btn-primary" onClick={() => this.onUpdateCount('increment', item.id)}>+</button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              </div>
+            </div>
+          );
+        }
+
+        renderTotal = () => {
+          return (
+            <div className="row">
+              <div className="col-4">
+                <div className="d-flex justify-content-between">
+                  <p>Total</p>
+                  <p>{this.getTotal()}</p>
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        render() {
+          return (
+            <div className="container">
+              <div className="card mt-4">
+                <div className="card-header">
+                  {this.renderForm()}
+                </div>
+
+                <div className="card-body">
+                  {this.renderList()}
+                </div>
+
+                <div className="card-footer">
+                  {this.renderTotal()}
+                </div>
+              </div>
+            </div>
+          );
+        }
+      }
+
+      ReactDOM.render(
+        <App />,
+        document.getElementById('root')
+      );
+    </script>
+  </body>
+</html>
